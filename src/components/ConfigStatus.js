@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import bedrockService from '../services/bedrockService';
+import mlModelService from '../services/mlModelService';
 
 const ConfigStatus = () => {
     const [status, setStatus] = useState({
+        mlModel: 'checking',
         bedrock: 'checking',
         mediapipe: 'checking',
         config: 'checking'
@@ -13,6 +15,17 @@ const ConfigStatus = () => {
     }, []);
 
     const checkConfiguration = async () => {
+        // Check ML Model availability
+        let mlModelStatus = 'disabled';
+        if (process.env.REACT_APP_USE_ML_MODEL !== 'false') {
+            try {
+                const initialized = await mlModelService.initialize();
+                mlModelStatus = initialized ? 'available' : 'error';
+            } catch (error) {
+                mlModelStatus = 'error';
+            }
+        }
+
         // Check environment variables
         const hasBedrockConfig = !!(
             process.env.REACT_APP_AWS_REGION &&
@@ -43,6 +56,7 @@ const ConfigStatus = () => {
         }
 
         setStatus({
+            mlModel: mlModelStatus,
             bedrock: bedrockStatus,
             mediapipe: mediapipeStatus,
             config: hasBedrockConfig ? 'configured' : 'missing'
@@ -68,6 +82,12 @@ const ConfigStatus = () => {
 
     const getStatusText = (key, status) => {
         const texts = {
+            mlModel: {
+                available: 'ML Model Ready',
+                disabled: 'ML Model Disabled',
+                error: 'ML Model Error',
+                checking: 'Checking ML Model...'
+            },
             bedrock: {
                 available: 'AWS Bedrock Ready',
                 disabled: 'Bedrock Disabled',

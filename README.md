@@ -27,23 +27,31 @@ An AI-powered American Sign Language (ASL) form correction application that help
    npm install
    ```
 
-2. **Start in demo mode** (no AWS setup required):
+2. **Start with your ML model** (recommended):
    ```bash
-   npm run start:demo
+   # Terminal 1: Start ML backend
+   npm run ml-server
+   
+   # Terminal 2: Start React app
+   npm run start:ml
    ```
 
-3. **For full AI features**, set up AWS Bedrock (see AWS_SETUP.md):
+3. **Alternative modes**:
    ```bash
-   cp .env.example .env
-   # Edit .env with your AWS configuration
+   # Demo mode (no ML/AI)
+   npm run start:demo
+   
+   # AWS Bedrock mode (requires setup)
    npm run start:bedrock
    ```
 
 ## Available Scripts
 
 - `npm start` - Start the app (uses environment variables)
-- `npm run start:demo` - Start without Bedrock (MediaPipe + demo mode)
-- `npm run start:bedrock` - Start with Bedrock enabled
+- `npm run start:ml` - Start with ML model backend (recommended)
+- `npm run start:demo` - Start in demo mode (no AI)
+- `npm run start:bedrock` - Start with AWS Bedrock
+- `npm run ml-server` - Start Python ML backend server
 - `npm run build` - Build for production
 - `npm test` - Run tests
 
