@@ -1,66 +1,75 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
-import SignPrompt from './components/SignPrompt';
-import WebcamField from './components/WebcamField';
-import MatchGauge from './components/MatchGauge';
-import FeedbackPanel from './components/FeedbackPanel';
+import RealtimeAnalysis from './components/RealtimeAnalysis';
+import VideoUpload from './components/VideoUpload';
 import ConfigStatus from './components/ConfigStatus';
-import SignGallery from './components/SignGallery';
-import signs from './data/signs';
-import { computeMatch, initMatcher } from './utils/matcher';
+import fastApiService from './services/fastApiService';
 
 function App() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [matchResult, setMatchResult] = useState(null); // full result object
-  const [status, setStatus] = useState('Ready');
-  const [engine, setEngine] = useState('stub');
-  const [showGallery, setShowGallery] = useState(false);
-  const currentSign = useMemo(() => signs[currentIndex], [currentIndex]);
+  const [availableSigns, setAvailableSigns] = useState([]);
+  const [selectedSign, setSelectedSign] = useState(null);
+  const [currentScore, setCurrentScore] = useState(0);
+  const [currentFeedback, setCurrentFeedback] = useState('');
+  const [showUpload, setShowUpload] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Load available signs on startup
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setStatus('Loading model...');
-      const res = await initMatcher();
-      if (!mounted) return;
-      setEngine(res.engine);
-      setStatus(res.ok ? 'Model ready' : 'Model unavailable — using demo scorer');
-    })();
-    return () => {
-      mounted = false;
+    const loadSigns = async () => {
+      try {
+        const result = await fastApiService.getAvailableSigns();
+        if (result.success) {
+          setAvailableSigns(result.signs);
+          if (result.signs.length > 0) {
+            setSelectedSign(result.signs[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading signs:', error);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    loadSigns();
   }, []);
 
-  const onCapture = async (dataUrl) => {
-    setStatus('Analyzing...');
-    setMatchResult(null);
-    try {
-      const result = await computeMatch(dataUrl, currentSign);
-      setMatchResult(result);
-      setStatus('Result');
-      setEngine(result.engine);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      setStatus('Analysis failed');
-      setMatchResult({
-        score: 0,
-        engine: 'error',
-        details: { error: error.message }
-      });
-    }
+  const handleScoreUpdate = (score) => {
+    setCurrentScore(score);
   };
 
-  const nextSign = () => {
-    setMatchResult(null);
-    setStatus('Ready');
-    setCurrentIndex((i) => (i + 1) % signs.length);
+  const handleFeedbackUpdate = (feedback) => {
+    setCurrentFeedback(feedback);
   };
 
-  const prevSign = () => {
-    setMatchResult(null);
-    setStatus('Ready');
-    setCurrentIndex((i) => (i - 1 + signs.length) % signs.length);
+  const handleUploadComplete = (result) => {
+    // Refresh available signs
+    const loadSigns = async () => {
+      const signsResult = await fastApiService.getAvailableSigns();
+      if (signsResult.success) {
+        setAvailableSigns(signsResult.signs);
+        // Select the newly uploaded sign
+        const newSign = signsResult.signs.find(s => s.name === result.video_path?.split('/').pop()?.replace('.mp4', ''));
+        if (newSign) {
+          setSelectedSign(newSign);
+        }
+      }
+    };
+
+    loadSigns();
+    setShowUpload(false);
   };
+
+  if (loading) {
+    return (
+      <div className="App">
+        <div className="loading-screen">
+          <h1>ASL Form Correction</h1>
+          <p>Loading available signs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">
@@ -68,40 +77,89 @@ function App() {
       <header className="App-header">
         <div className="header-content">
           <div>
-            <h1>ASL Form Correction</h1>
-            <p className="muted">Try the prompted sign on your webcam and see your match percentage.</p>
+            <h1>Real-time ASL Form Correction</h1>
+            <p className="muted">Practice ASL signs with instant AI-powered feedback</p>
           </div>
-          <button
-            className="gallery-button"
-            onClick={() => setShowGallery(true)}
-            title="View all available signs"
-          >
-            📚 View All Signs
-          </button>
+          <div className="header-controls">
+            <button
+              className="upload-button"
+              onClick={() => setShowUpload(!showUpload)}
+              title="Upload new target video"
+            >
+              📤 Upload Video
+            </button>
+          </div>
         </div>
       </header>
+
       <div className="app-container">
-        <div className={matchResult?.details?.feedback ? "content-grid-with-feedback" : "content-grid"}>
-          <div className="panel">
-            <SignPrompt sign={currentSign} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button className="primary" onClick={prevSign}>Previous</button>
-              <button className="primary" onClick={nextSign}>Next</button>
+        {/* Sign Selection */}
+        <div className="panel sign-selection">
+          <h3>Select Sign to Practice</h3>
+          {availableSigns.length > 0 ? (
+            <div className="sign-selector">
+              {availableSigns.map((sign) => (
+                <button
+                  key={sign.name}
+                  onClick={() => setSelectedSign(sign)}
+                  className={`sign-option ${selectedSign?.name === sign.name ? 'selected' : ''}`}
+                >
+                  {sign.name.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="no-signs">
+              <p>No signs available. Upload a target video to get started.</p>
+              <button
+                className="primary"
+                onClick={() => setShowUpload(true)}
+              >
+                Upload First Video
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Upload Panel */}
+        {showUpload && (
+          <div className="panel upload-panel">
+            <VideoUpload onUploadComplete={handleUploadComplete} />
+          </div>
+        )}
+
+        {/* Real-time Analysis */}
+        {selectedSign && !showUpload && (
+          <div className="panel analysis-panel">
+            <RealtimeAnalysis
+              selectedSign={selectedSign}
+              onScoreUpdate={handleScoreUpdate}
+              onFeedbackUpdate={handleFeedbackUpdate}
+            />
+          </div>
+        )}
+
+        {/* Results Summary */}
+        {selectedSign && !showUpload && (
+          <div className="panel results-panel">
+            <div className="results-grid">
+              <div className="score-summary">
+                <h4>Current Score</h4>
+                <div className="score-display">
+                  <span className="score-value">{currentScore}%</span>
+                </div>
+              </div>
+
+              {currentFeedback && (
+                <div className="feedback-summary">
+                  <h4>Latest Feedback</h4>
+                  <p className="feedback-text">{currentFeedback}</p>
+                </div>
+              )}
             </div>
           </div>
-          <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <MatchGauge value={matchResult?.score} status={`${status} • engine: ${engine}`} />
-            <FeedbackPanel matchResult={matchResult} />
-          </div>
-        </div>
-        <div className="panel" style={{ marginTop: 16 }}>
-          <WebcamField onCapture={onCapture} disabled={status === 'Analyzing...'} />
-        </div>
+        )}
       </div>
-
-      {showGallery && (
-        <SignGallery onClose={() => setShowGallery(false)} />
-      )}
     </div>
   );
 }

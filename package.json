@@ -23,12 +23,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "start:demo": "REACT_APP_USE_ML_MODEL=false REACT_APP_USE_BEDROCK=false react-scripts start",
-    "start:ml": "REACT_APP_USE_ML_MODEL=true REACT_APP_USE_BEDROCK=false react-scripts start",
-    "start:bedrock": "REACT_APP_USE_ML_MODEL=false REACT_APP_USE_BEDROCK=true react-scripts start",
-    "start:dev-proxy": "REACT_APP_USE_BEDROCK=true REACT_APP_USE_DEV_PROXY=true react-scripts start",
-    "dev-server": "node server.js",
-    "ml-server": "cd backend && python app.py"
+    "fastapi-server": "cd fastapi-backend && python main.py",
+    "health-check": "node health-check.js",
+    "setup": "./start.sh"
   },
   "eslintConfig": {
     "extends": [

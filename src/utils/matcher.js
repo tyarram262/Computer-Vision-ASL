@@ -1,13 +1,10 @@
-// Enhanced matcher utilities. Tries ML model first, then AWS Bedrock for advanced sign analysis,
-// falls back to MediaPipe Hand Landmarker, or finally to a stubbed score.
+// Enhanced matcher utilities. Tries ML model first, then falls back to MediaPipe Hand Landmarker, 
+// or finally to a stubbed score.
 
 import mlModelService from '../services/mlModelService';
-import bedrockService from '../services/bedrockService';
-import bedrockServiceDev from '../services/bedrockServiceDev';
 
 let handLandmarker = null;
 let filesetResolver = null;
-let bedrockAvailable = false;
 let mlModelAvailable = false;
 
 const MP_TASKS_VERSION = '0.10.14';
@@ -33,31 +30,8 @@ export async function initMatcher() {
     }
   }
 
-  // Try to initialize Bedrock if ML model failed (if enabled)
-  if (!mlModelAvailable && process.env.REACT_APP_USE_BEDROCK === 'true') {
-    try {
-      // Try development proxy first in development mode
-      if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_DEV_PROXY === 'true') {
-        bedrockAvailable = await bedrockServiceDev.initialize();
-        if (bedrockAvailable) {
-          primaryEngine = 'bedrock-dev';
-          engineStatus = { ok: true };
-        }
-      } else {
-        bedrockAvailable = await bedrockService.initialize();
-        if (bedrockAvailable) {
-          primaryEngine = 'bedrock';
-          engineStatus = { ok: true };
-        }
-      }
-    } catch (e) {
-      console.warn('Bedrock not available:', e);
-      bedrockAvailable = false;
-    }
-  }
-
-  // Try MediaPipe as fallback (if ML model and Bedrock failed or fallback enabled)
-  if ((!mlModelAvailable && !bedrockAvailable) || process.env.REACT_APP_FALLBACK_TO_MEDIAPIPE === 'true') {
+  // Try MediaPipe as fallback (if ML model failed or fallback enabled)
+  if (!mlModelAvailable || process.env.REACT_APP_FALLBACK_TO_MEDIAPIPE === 'true') {
     try {
       const mod = await import('@mediapipe/tasks-vision');
       const { HandLandmarker, FilesetResolver } = mod;
@@ -70,7 +44,7 @@ export async function initMatcher() {
         runningMode: 'IMAGE',
       });
 
-      if (!mlModelAvailable && !bedrockAvailable) {
+      if (!mlModelAvailable) {
         primaryEngine = 'mediapipe';
         engineStatus = { ok: true };
       }
@@ -78,7 +52,7 @@ export async function initMatcher() {
       console.warn('MediaPipe not available:', e);
       handLandmarker = null;
       filesetResolver = null;
-      if (!mlModelAvailable && !bedrockAvailable) {
+      if (!mlModelAvailable) {
         engineStatus = { ok: false };
       }
     }
@@ -122,21 +96,7 @@ export async function computeMatch(dataUrl, targetSign) {
       const result = await mlModelService.analyzeSignLanguage(dataUrl, targetSign);
       return result;
     } catch (e) {
-      console.warn('ML Model analysis failed, falling back to Bedrock:', e);
-      // Continue to Bedrock fallback
-    }
-  }
-
-  // Try Bedrock if ML model failed
-  if (bedrockAvailable) {
-    try {
-      const service = (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_DEV_PROXY === 'true')
-        ? bedrockServiceDev
-        : bedrockService;
-      const result = await service.analyzeSignLanguage(dataUrl, targetSign);
-      return result;
-    } catch (e) {
-      console.warn('Bedrock analysis failed, falling back to MediaPipe:', e);
+      console.warn('ML Model analysis failed, falling back to MediaPipe:', e);
       // Continue to MediaPipe fallback
     }
   }

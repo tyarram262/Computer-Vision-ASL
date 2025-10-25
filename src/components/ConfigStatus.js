@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import bedrockService from '../services/bedrockService';
 import mlModelService from '../services/mlModelService';
 
 const ConfigStatus = () => {
     const [status, setStatus] = useState({
         mlModel: 'checking',
-        bedrock: 'checking',
-        mediapipe: 'checking',
-        config: 'checking'
+        mediapipe: 'checking'
     });
 
     useEffect(() => {
@@ -26,26 +23,7 @@ const ConfigStatus = () => {
             }
         }
 
-        // Check environment variables
-        const hasBedrockConfig = !!(
-            process.env.REACT_APP_AWS_REGION &&
-            process.env.REACT_APP_COGNITO_IDENTITY_POOL_ID
-        );
 
-        // Check Bedrock availability
-        let bedrockStatus = 'disabled';
-        if (process.env.REACT_APP_USE_BEDROCK === 'true') {
-            if (hasBedrockConfig) {
-                try {
-                    const initialized = await bedrockService.initialize();
-                    bedrockStatus = initialized ? 'available' : 'error';
-                } catch (error) {
-                    bedrockStatus = 'error';
-                }
-            } else {
-                bedrockStatus = 'misconfigured';
-            }
-        }
 
         // Check MediaPipe
         let mediapipeStatus = 'available';
@@ -57,9 +35,7 @@ const ConfigStatus = () => {
 
         setStatus({
             mlModel: mlModelStatus,
-            bedrock: bedrockStatus,
-            mediapipe: mediapipeStatus,
-            config: hasBedrockConfig ? 'configured' : 'missing'
+            mediapipe: mediapipeStatus
         });
     };
 
@@ -88,22 +64,10 @@ const ConfigStatus = () => {
                 error: 'ML Model Error',
                 checking: 'Checking ML Model...'
             },
-            bedrock: {
-                available: 'AWS Bedrock Ready',
-                disabled: 'Bedrock Disabled',
-                error: 'Bedrock Error',
-                misconfigured: 'Bedrock Misconfigured',
-                checking: 'Checking Bedrock...'
-            },
             mediapipe: {
                 available: 'MediaPipe Ready',
                 unavailable: 'MediaPipe Unavailable',
                 checking: 'Checking MediaPipe...'
-            },
-            config: {
-                configured: 'AWS Config Present',
-                missing: 'AWS Config Missing',
-                checking: 'Checking Config...'
             }
         };
         return texts[key][status] || status;
@@ -125,7 +89,7 @@ const ConfigStatus = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    marginBottom: key === 'config' ? 0 : '4px'
+                    marginBottom: key === 'mediapipe' ? 0 : '4px'
                 }}>
                     <div style={{
                         width: '8px',
