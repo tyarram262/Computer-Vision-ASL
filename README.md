@@ -1,70 +1,158 @@
-# Getting Started with Create React App
+# ASL Form Correction App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An AI-powered American Sign Language (ASL) form correction application that helps users learn and improve their sign language skills through real-time feedback.
+
+## Features
+
+- **Real-time Sign Analysis**: Capture your sign language gestures via webcam
+- **AI-Powered Feedback**: Advanced analysis using AWS Bedrock's Claude 3 Sonnet
+- **Multi-Engine Support**: Falls back to MediaPipe or demo mode if Bedrock unavailable
+- **Detailed Feedback**: Get specific suggestions for improving your form
+- **Interactive Learning**: Navigate through different ASL signs to practice
+- **Visual Examples**: Toggle to show/hide example demonstrations for each sign
+- **Sign Gallery**: Browse all available signs with their visual examples
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Technology Stack
+
+- **Frontend**: React 19.2.0
+- **AI/ML**: AWS Bedrock (Claude 3 Sonnet), MediaPipe Hand Landmarker
+- **Webcam**: react-webcam
+- **AWS SDK**: @aws-sdk/client-bedrock-runtime
+
+## Quick Start
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Start in demo mode** (no AWS setup required):
+   ```bash
+   npm run start:demo
+   ```
+
+3. **For full AI features**, set up AWS Bedrock (see AWS_SETUP.md):
+   ```bash
+   cp .env.example .env
+   # Edit .env with your AWS configuration
+   npm run start:bedrock
+   ```
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm start` - Start the app (uses environment variables)
+- `npm run start:demo` - Start without Bedrock (MediaPipe + demo mode)
+- `npm run start:bedrock` - Start with Bedrock enabled
+- `npm run build` - Build for production
+- `npm test` - Run tests
 
-### `npm start`
+## Configuration
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The app supports multiple analysis engines:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 1. AWS Bedrock (Recommended)
+- Most accurate sign language analysis
+- Detailed feedback and suggestions
+- Requires AWS setup (see AWS_SETUP.md)
 
-### `npm test`
+### 2. MediaPipe (Fallback)
+- Basic hand detection and analysis
+- Works offline
+- Limited to open/closed hand detection
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 3. Demo Mode (Fallback)
+- Simulated scores for testing
+- No external dependencies
+- Always available
 
-### `npm run build`
+## Environment Variables
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Create a `.env` file with:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```env
+# AWS Configuration
+REACT_APP_AWS_REGION=us-east-1
+REACT_APP_COGNITO_IDENTITY_POOL_ID=your-identity-pool-id
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Feature Flags
+REACT_APP_USE_BEDROCK=true
+REACT_APP_FALLBACK_TO_MEDIAPIPE=true
 
-### `npm run eject`
+# Optional
+REACT_APP_BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## How It Works
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. **Sign Selection**: Choose from available ASL signs to practice
+2. **Webcam Capture**: Position your hand in the camera view
+3. **AI Analysis**: The system analyzes your gesture using:
+   - AWS Bedrock for detailed form analysis
+   - MediaPipe for hand landmark detection
+   - Demo scorer as final fallback
+4. **Feedback**: Receive a match percentage and detailed improvement suggestions
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Adding New Signs
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Edit `src/data/signs.js` to add new signs:
 
-## Learn More
+```javascript
+{
+  id: 'new-sign',
+  word: 'NEW SIGN',
+  meaning: 'Description of the sign',
+  tips: 'Instructions for performing the sign',
+  sampleImage: null, // Optional: path to reference image
+  expectedOpenHand: true // true for open hand, false for closed
+}
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Architecture
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
+src/
+├── components/
+│   ├── SignPrompt.js      # Display current sign to practice
+│   ├── WebcamField.js     # Camera capture interface
+│   ├── MatchGauge.js      # Score display
+│   ├── FeedbackPanel.js   # AI feedback display
+│   └── ConfigStatus.js    # System status indicator
+├── services/
+│   └── bedrockService.js  # AWS Bedrock integration
+├── utils/
+│   └── matcher.js         # Analysis engine coordination
+├── data/
+│   └── signs.js          # ASL signs database
+└── App.js                # Main application
+```
 
-### Code Splitting
+## Cost Considerations
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+When using AWS Bedrock:
+- Claude 3 Sonnet: ~$3 per 1M tokens
+- Each analysis: ~500-1000 tokens
+- Estimated cost: $0.002-0.003 per analysis
 
-### Analyzing the Bundle Size
+## Troubleshooting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. **Camera not working**: Check browser permissions
+2. **Bedrock errors**: Verify AWS setup in AWS_SETUP.md
+3. **No hand detected**: Ensure good lighting and hand visibility
+4. **Poor accuracy**: Try different hand positions and lighting
 
-### Making a Progressive Web App
+## Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+1. Fork the repository
+2. Create a feature branch
+3. Add new signs or improve analysis accuracy
+4. Submit a pull request
 
-### Advanced Configuration
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+MIT License - see LICENSE file for details
 
-### Deployment
+## Support
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For AWS Bedrock setup issues, see AWS_SETUP.md
+For general questions, open an issue on GitHub
