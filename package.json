@@ -16,6 +16,9 @@
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
     "react-webcam": "^7.2.0",
+  "@tensorflow/tfjs": "^3.21.0",
+  "@tensorflow/tfjs-backend-webgl": "^3.21.0",
+  "@tensorflow-models/handpose": "^0.0.7",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -23,9 +26,12 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "fastapi-server": "cd fastapi-backend && python main.py",
-    "health-check": "node health-check.js",
-    "setup": "./start.sh"
+    "start:demo": "REACT_APP_USE_ML_MODEL=false REACT_APP_USE_BEDROCK=false react-scripts start",
+    "start:ml": "REACT_APP_USE_ML_MODEL=true REACT_APP_USE_BEDROCK=false react-scripts start",
+    "start:bedrock": "REACT_APP_USE_ML_MODEL=false REACT_APP_USE_BEDROCK=true react-scripts start",
+    "start:dev-proxy": "REACT_APP_USE_BEDROCK=true REACT_APP_USE_DEV_PROXY=true react-scripts start",
+    "dev-server": "node server.js",
+    "ml-server": "cd backend && python app.py"
   },
   "eslintConfig": {
     "extends": [
